@@ -1,19 +1,24 @@
 Prodecimento para instalar o Graylog no Oracle Linux 9
 
+---Pré-requisito
+o IP deve ser estático
+Estar logado com usuário root
 
----Atualizar o Sistema
-sudo dnf update -y
+
+---Atualizar os pacotes do linux
+dnf update -y
 
 ---Desativar o SELINUX (Após desativar fazer o reboot para aplicar)
 sed -i 's/^SELINUX=enforcing/\SELINUX=disabled/' /etc/selinux/config
+reboot
 
 
----Setar o timezone de sao paulo
+---Setar o timezone de sao paulo e conferir se a hora está correta
 timedatectl set-timezone America/Sao_Paulo
-
+date
 
 ---Instalar OpenJDK 17
-sudo dnf install -y java-17-openjdk
+dnf install -y java-17-openjdk
 
 
 ---Instalar o MongoDB
@@ -61,8 +66,8 @@ echo "plugins.security.disabled: true" >> /etc/opensearch/opensearch.yml
 
 ---Aumentar tamanho da JVM
 
-sed -i 's/^Xms1g/\Xms2g/' /etc/opensearch/jvm.options
-sed -i 's/^Xmx1g/\Xmx2g/' /etc/opensearch/jvm.options
+sed -i 's/^-Xms1g/\-Xms2g/' /etc/opensearch/jvm.options
+sed -i 's/^-Xmx1g/\-Xmx2g/' /etc/opensearch/jvm.options
 
 
 ---habilitar serviços e inicia-los
@@ -75,21 +80,22 @@ systemctl daemon-reload && systemctl enable opensearch && systemctl start opense
 rpm -Uvh https://packages.graylog2.org/repo/packages/graylog-6.1-repository_latest.rpm
 
 ---instalar
-dnf install -y graylog-server
+dnf install graylog-server -y
 
 ---instalar o pwgen para geração de senha
 rpm -ivh https://dl.fedoraproject.org/pub/epel/9/Everything/x86_64/Packages/p/pwgen-2.08-8.el9.x86_64.rpm
 
----gerar a password_secret
+---Gerar a password_secret
 pwgen -N 1 -s 96
 #Anotar a senha gerada
 
----gerar o root_password_sha2
+---Gerar o root_password_sha2 (está será a senha utilizada para logar no Graylog)
 echo -n "Enter Password: " && head -1 </dev/stdin | tr -d '\n' | sha256sum | cut -d" " -f1
 #Anotar a senha gerada
 
 
 ---Configurar o Graylog
+
 vim /etc/graylog/server/server.conf
 
 password_secret = password_secret gerada acima
@@ -100,8 +106,7 @@ http_publish_uri = http://IP-DO-LINUX:9000/
 
 
 ---Liberar portas no Firewall
-firewall-cmd --permanent --add-port=9000/tcp && firewall-cmd --permanent --add-port=9200/tcp && firewall-cmd --permanent --add-port=27017/tcp
-firewall-cmd --reload
+firewall-cmd --permanent --add-port=9000/tcp && firewall-cmd --permanent --add-port=9200/tcp && firewall-cmd --permanent --add-port=27017/tcp && firewall-cmd --reload
 
 
 ---habilitar serviços  inicia-los
@@ -114,8 +119,7 @@ http://IP-DO-LINUX:9000/
 ---Pegar a senha de setup gerada
 tail /var/log/graylog-server/server.log
 
-
----Após finalizar o setup acessar com
+---Após finalizar o setup inicial acessar com
 admin
 senha informada no passo "gerar o root_password_sha2"
 
