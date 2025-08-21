@@ -1,2 +1,128 @@
 # Graylog
 Install and Configure Graylog
+
+Prodecimento para instalar o Graylog no Oracle Linux 9
+
+
+---Atualizar o Sistema
+sudo dnf update -y
+
+---Desativar o SELINUX (Após desativar fazer o reboot para aplicar)
+vim /etc/selinux/config
+SELINUX=disabled
+
+
+---Setar o timezone de sao paulo
+timedatectl set-timezone America/Sao_Paulo
+
+
+---Instalar OpenJDK 17
+sudo dnf install -y java-17-openjdk
+
+
+---Instalar o MongoDB
+
+---Configurar Repositório
+sudo tee /etc/yum.repos.d/mongodb-org-6.0.repo <<EOF
+[mongodb-org-6.0]
+name=MongoDB Repository
+baseurl=https://repo.mongodb.org/yum/redhat/9/mongodb-org/6.0/x86_64/
+gpgcheck=1
+enabled=1
+gpgkey=https://pgp.mongodb.com/server-6.0.asc
+EOF
+
+---instalar
+dnf install mongodb-org -y
+
+---habilitar serviços e inicia-los
+systemctl daemon-reload && systemctl enable mongod && systemctl start mongod && systemctl status mongod
+
+
+---Instalar o OpenSearch (Substituto do Elasticsearch)
+
+---Configurar Repositório
+sudo tee /etc/yum.repos.d/opensearch.repo <<EOF
+[opensearch]
+name=OpenSearch Repository
+baseurl=https://artifacts.opensearch.org/releases/bundle/opensearch/2.x/yum/
+enabled=1
+gpgcheck=1
+gpgkey=https://artifacts.opensearch.org/publickeys/opensearch.pgp
+EOF
+
+---instalar
+dnf install opensearch -y
+
+---Configurar o opensearch
+vim /etc/opensearch/opensearch.yml
+
+cluster.name: graylog
+node.name: graylog-node
+network.host: 0.0.0.0
+discovery.type: single-node
+action.auto_create_index: false
+plugins.security.disabled: true
+
+---Aumentar tamanho da JVM
+vim /etc/opensearch/jvm.options
+Alterar de Xms1g para Xms2g
+Alterar de Xmx1g para Xmx2g
+
+---habilitar serviços  inicia-los
+systemctl daemon-reload && systemctl enable opensearch && systemctl start opensearch && systemctl status opensearch
+
+
+---Instalar o Graylog---
+
+---Baixar e instalar o repositorio
+rpm -Uvh https://packages.graylog2.org/repo/packages/graylog-6.1-repository_latest.rpm
+
+---instalar
+dnf install -y graylog-server
+
+---instalar o pwgen para geração de senha
+rpm -ivh https://dl.fedoraproject.org/pub/epel/9/Everything/x86_64/Packages/p/pwgen-2.08-8.el9.x86_64.rpm
+
+---gerar a password_secret
+pwgen -N 1 -s 96
+#Anotar a senha gerada
+
+---gerar o root_password_sha2
+echo -n "Enter Password: " && head -1 </dev/stdin | tr -d '\n' | sha256sum | cut -d" " -f1
+#Anotar a senha gerada
+
+
+---Configurar o Graylog
+vim /etc/graylog/server/server.conf
+
+password_secret = password_secret gerada acima
+root_password_sha2 = root_password_sha2 gerada acima
+root_timezone = America/Sao_Paulo
+http_bind_address = 0.0.0.0:9000
+http_publish_uri = http://IP-DO-LINUX:9000/
+
+
+---Liberar portas no Firewall
+firewall-cmd --permanent --add-port=9000/tcp && firewall-cmd --permanent --add-port=9200/tcp && firewall-cmd --permanent --add-port=27017/tcp
+firewall-cmd --reload
+
+
+---habilitar serviços  inicia-los
+systemctl daemon-reload && systemctl enable graylog-server && systemctl start graylog-server && systemctl status graylog-server
+
+
+---Acessar o Graylog pela primeira vez
+http://IP-DO-LINUX:9000/
+
+---Pegar a senha de setup gerada
+tail /var/log/graylog-server/server.log
+
+
+---Após finalizer o setup acessar com
+admin
+senha informada no passo "gerar o root_password_sha2"
+
+
+
+
