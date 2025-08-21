@@ -5,8 +5,7 @@ Prodecimento para instalar o Graylog no Oracle Linux 9
 sudo dnf update -y
 
 ---Desativar o SELINUX (Após desativar fazer o reboot para aplicar)
-vim /etc/selinux/config
-SELINUX=disabled
+sed -i 's/^SELINUX=enforcing/\SELINUX=disabled/' /etc/selinux/config
 
 
 ---Setar o timezone de sao paulo
@@ -52,21 +51,21 @@ EOF
 dnf install opensearch -y
 
 ---Configurar o opensearch
-vim /etc/opensearch/opensearch.yml
 
-cluster.name: graylog
-node.name: graylog-node
-network.host: 0.0.0.0
-discovery.type: single-node
-action.auto_create_index: false
-plugins.security.disabled: true
+echo "cluster.name: graylog" >> /etc/opensearch/opensearch.yml
+echo "node.name: graylog-node" >> /etc/opensearch/opensearch.yml
+echo "network.host: 0.0.0.0" >> /etc/opensearch/opensearch.yml
+echo "discovery.type: single-node" >> /etc/opensearch/opensearch.yml
+echo "action.auto_create_index: false" >> /etc/opensearch/opensearch.yml
+echo "plugins.security.disabled: true" >> /etc/opensearch/opensearch.yml
 
 ---Aumentar tamanho da JVM
-vim /etc/opensearch/jvm.options
-Alterar de Xms1g para Xms2g
-Alterar de Xmx1g para Xmx2g
 
----habilitar serviços  inicia-los
+sed -i 's/^Xms1g/\Xms2g/' /etc/opensearch/jvm.options
+sed -i 's/^Xmx1g/\Xmx2g/' /etc/opensearch/jvm.options
+
+
+---habilitar serviços e inicia-los
 systemctl daemon-reload && systemctl enable opensearch && systemctl start opensearch && systemctl status opensearch
 
 
@@ -116,7 +115,7 @@ http://IP-DO-LINUX:9000/
 tail /var/log/graylog-server/server.log
 
 
----Após finalizer o setup acessar com
+---Após finalizar o setup acessar com
 admin
 senha informada no passo "gerar o root_password_sha2"
 
