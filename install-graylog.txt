@@ -105,8 +105,9 @@ http_bind_address = 0.0.0.0:9000
 http_publish_uri = http://IP-DO-LINUX:9000/
 
 
----Liberar portas no Firewall
+---Liberar portas no Firewall e desativar
 firewall-cmd --permanent --add-port=9000/tcp && firewall-cmd --permanent --add-port=9200/tcp && firewall-cmd --permanent --add-port=27017/tcp && firewall-cmd --reload
+systemctl stop firewalld.service
 
 
 ---habilitar serviços  inicia-los
